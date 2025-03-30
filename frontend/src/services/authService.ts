@@ -12,7 +12,7 @@ export const authService = {
     formData.append('username', email);
     formData.append('password', password);
     
-    const response = await apiService.post<LoginResponse>('auth/login', formData, {
+    const response = await apiService.post<LoginResponse>('authlogin', formData, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
@@ -22,7 +22,7 @@ export const authService = {
   },
   
   refreshToken: async (refreshToken: string): Promise<LoginResponse> => {
-    const response = await apiService.post<LoginResponse>('auth/refresh', {
+    const response = await apiService.post<LoginResponse>('authrefresh', {
       refresh_token: refreshToken,
     });
     
@@ -30,13 +30,13 @@ export const authService = {
   },
   
   logout: async (refreshToken: string): Promise<void> => {
-    await apiService.post('auth/logout', {
+    await apiService.post('authlogout', {
       refresh_token: refreshToken,
     });
   },
   
   register: async (email: string, password: string, fullName: string): Promise<void> => {
-    await apiService.post('auth/register', {
+    await apiService.post('authregister', {
       email,
       password,
       confirm_password: password,
@@ -45,13 +45,13 @@ export const authService = {
   },
   
   requestPasswordReset: async (email: string): Promise<void> => {
-    await apiService.post('auth/password-reset-request', {
+    await apiService.post('authpassword-reset-request', {
       email,
     });
   },
   
   resetPassword: async (token: string, newPassword: string): Promise<void> => {
-    await apiService.post('auth/reset-password', {
+    await apiService.post('authreset-password', {
       token,
       new_password: newPassword,
       confirm_password: newPassword,
@@ -59,7 +59,7 @@ export const authService = {
   },
   
   verifyEmail: async (token: string): Promise<void> => {
-    await apiService.post('auth/verify-email', {
+    await apiService.post('authverify-email', {
       token,
     });
   },
