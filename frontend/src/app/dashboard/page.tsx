@@ -35,15 +35,15 @@ export default function Dashboard() {
           setIsLoading(true);
           
           // Fetch tools
-          const toolsResponse = await apiService.get<{ data: Tool[] }>('/api/tools');
+          const toolsResponse = await apiService.get<{ data: Tool[] }>('/tools');
           setTools(toolsResponse.data.data || []);
           
           // Fetch recent activity
-          const activityResponse = await apiService.get('/api/users/me/activity');
+          const activityResponse = await apiService.get('/users/me/activity');
           setRecentActivity(activityResponse.data.data || []);
           
           // Fetch stats
-          const statsResponse = await apiService.get('/api/users/me/stats');
+          const statsResponse = await apiService.get('/users/me/stats');
           setStats(statsResponse.data || {
             totalTools: 0,
             completedTools: 0,

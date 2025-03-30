@@ -31,15 +31,15 @@ const AdminDashboard: React.FC = () => {
         setIsLoading(true);
         
         // Fetch admin stats
-        const statsResponse = await apiService.get<StatsData>('/api/admin/stats');
+        const statsResponse = await apiService.get<StatsData>('/admin/stats');
         setStats(statsResponse.data);
         
         // Fetch tool usage stats
-        const toolUsageResponse = await apiService.get<UsageData[]>('/api/admin/tools/usage');
+        const toolUsageResponse = await apiService.get<UsageData[]>('/admin/tools/usage');
         setToolUsage(toolUsageResponse.data);
         
         // Fetch user activity stats
-        const userActivityResponse = await apiService.get<UsageData[]>('/api/admin/users/activity');
+        const userActivityResponse = await apiService.get<UsageData[]>('/admin/users/activity');
         setUserActivity(userActivityResponse.data);
         
       } catch (error) {
