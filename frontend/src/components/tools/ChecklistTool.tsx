@@ -64,6 +64,13 @@ export default function ProductionChecklistPage() {
                   completed += section.items.filter((item: any) => item.checked).length;
                 });
                 setProgress({ total, completed });
+                
+                // Initialize expanded sections
+                const initExpandedSections: Record<string, boolean> = {};
+                loadedData.forEach((section: any, idx: number) => {
+                  initExpandedSections[section.title] = idx === 0; // Only expand first section by default
+                });
+                setExpandedSections(initExpandedSections);
               } else {
                 // Use default data
                 const initialChecklist = getChecklistData();
