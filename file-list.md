@@ -1,0 +1,3 @@
+backend\app\api\routes\tools.py backend\app\models\models.py backend\app\schemas\tool.py database\init\02-initial-data.sql frontend\src\app\history\page.tsx "frontend\src\app\history\[id]\page.tsx" frontend\src\app\tools\production-checklist\page.tsx frontend\src\app\tools\page.tsx "frontend\src\app\tools\[id]\page.tsx" frontend\src\components\admin\ToolManagement.tsx frontend\src\components\dashboard\ToolsList.tsx frontend\src\components\tools\ChecklistTool.tsx frontend\src\components\tools\ProductionChecklistPage.tsx frontend\src\components\layout\Sidebar.tsx frontend\src\types\tool.ts 
+
+backend\app\api\routes\admin.py backend\app\api\routes\users.py backend\app\main.py

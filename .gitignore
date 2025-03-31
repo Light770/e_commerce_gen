@@ -1,4 +1,5 @@
 plan.md
+production-readiness-checklist.md
 # .env
 
 frontend/package-lock.json
@@ -9,3 +10,4 @@ backend/app/*/__pycache__
 backend/app/__pycache__
 backend/app/*/*/__pycache__
 backend/alembic/__pycache__
+.aider*

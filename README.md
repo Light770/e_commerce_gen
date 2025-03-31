@@ -8,8 +8,8 @@ Before you begin, ensure you have the following installed:
 
 *   [Docker](https://www.docker.com/get-started)
 *   [Docker Compose](https://docs.docker.com/compose/install/)
-*   [Node.js](https://nodejs.org/) (v16 or higher)
-*   [npm](https://www.npmjs.com/) (v7 or higher)
+*   [Node.js](https://nodejs.org/) (v18 or higher)
+*   [npm](https://www.npmjs.com/) (v10 or higher)
 
 ## Configuration
 
@@ -17,61 +17,13 @@ Before you begin, ensure you have the following installed:
 
     Create a `.env` file in the root directory of the project. You can use the `.env.example` file as a template.
 
-    ```bash
-    cp .env.example .env
-    ```
-
     Modify the `.env` file with your specific configuration values.
-
-    Example `.env` file:
-
-    ```
-    DATABASE_URL=postgresql://user:password@host:port/database
-    ACCESS_TOKEN_EXPIRE_MINUTES=30
-    REFRESH_TOKEN_EXPIRE_DAYS=7
-    CORS_ORIGINS=http://localhost:3000
-    NEXT_PUBLIC_API_URL=http://localhost:8000
-    ```
 
 ## Setup
 
-1.  **Database Setup:**
+1.  **Frontend Setup:**
 
-    The application uses PostgreSQL as its database. You can set up the database using Docker Compose.
-
-    ```bash
-    docker-compose up -d
-    ```
-
-    This command will start the PostgreSQL database in a Docker container.
-
-2.  **Backend Setup:**
-
-    Navigate to the `backend` directory:
-
-    ```bash
-    cd backend
-    ```
-
-    Install the backend dependencies:
-
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-    Run the database migrations:
-
-    ```bash
-    alembic upgrade head
-    ```
-
-    Initialize the database (create admin user):
-
-    ```bash
-    python init_db.py
-    ```
-
-3.  **Frontend Setup:**
+    Activate the frontend first to create the missing package-lock.json or else docker-compose up -d --build won't work.
 
     Navigate to the `frontend` directory:
 
@@ -85,7 +37,57 @@ Before you begin, ensure you have the following installed:
     npm install
     ```
 
-## Running the Application
+    Go back to root directory :
+
+    ```bash
+    cd ..
+    ```
+
+2.  **Database Setup:**
+
+    The application uses MariaDB as its database. You can set up the database using Docker Compose.
+
+    ```bash
+    docker-compose up -d --build
+    ```
+
+    This command will start the MariaDB database in a Docker container.
+
+3.  **Check the pages**
+
+    check health via the logs :
+
+    ```bash
+    docker compose logs
+    ```
+
+    Check the frontend on http://localhost:3000
+
+    you can log in using admin account from the .env file:
+    ```bash
+    ADMIN_EMAIL=admin@example.com
+    ADMIN_PASSWORD=admin-password-change-me
+    ```
+
+    Check the health of the api :
+
+    http://localhost:3000/api/health
+
+    Check the enpoints for the api :
+
+    http://localhost:8000/docs
+
+    Check the database :
+
+    http://localhost:8080
+
+    to log using root account check the env file, default is :
+    ```bash
+    USER=root
+    MYSQL_ROOT_PASSWORD=secure-root-password
+    ```
+
+## Running the Application without docker (not recommended)
 
 1.  **Backend:**
 
@@ -117,8 +119,46 @@ Before you begin, ensure you have the following installed:
 
     This will start the frontend application on `http://localhost:3000`.
 
-## Notes
+## Setting up emails on the registrar front
 
-*   Ensure that the database is running before starting the backend application.
-*   The backend application will automatically reload when you make changes to the code.
-*   The frontend application will automatically reload when you make changes to the code.
+    A. Setting up SPF Records
+    The Sender Policy Framework (SPF) record specifies which mail servers are authorized to send email from your domain.
+
+    Log in to your domain registrar's control panel (GoDaddy, Namecheap, etc.)
+    Navigate to the DNS management section
+    Add a TXT record with:
+
+    Host: @ or leave empty (depends on registrar)
+    Value: v=spf1 include:_spf.your-email-provider.com ~all
+
+    For example, with SendGrid: v=spf1 include:sendgrid.net ~all
+
+    B. Setting up DKIM Records
+    DomainKeys Identified Mail (DKIM) adds a digital signature to verify email authenticity.
+
+    In your email provider's dashboard, generate DKIM keys
+    In your registrar's DNS settings, add a TXT record:
+
+    Host: typically something like mail._domainkey (provider will specify)
+    Value: the DKIM key provided by your email service (often a long string)
+
+
+
+    C. Setting up DMARC Records
+    Domain-based Message Authentication, Reporting & Conformance protects your domain from email spoofing.
+
+    Add a TXT record:
+
+    Host: _dmarc
+    Value: v=DMARC1; p=quarantine; rua=mailto:dmarc@yourdomain.com
+
+
+
+    D. Optional: Setting up MX Records
+    If you're also receiving emails, add MX records:
+
+    Add MX record(s):
+
+    Host: @ or leave empty
+    Priority: As specified by your email provider (e.g., 10)
+    Value: The mail server address (e.g., mail.yourdomain.com)
