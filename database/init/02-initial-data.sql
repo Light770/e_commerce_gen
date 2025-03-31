@@ -20,5 +20,9 @@ INSERT INTO tools (name, description, icon, is_active)
 SELECT 'Image Editor', 'Edit and optimize images', 'image', true
 WHERE NOT EXISTS (SELECT 1 FROM tools WHERE name = 'Image Editor');
 
+INSERT INTO tools (name, description, icon, is_active) 
+SELECT 'Production Checklist', 'Comprehensive checklist for production readiness', 'chart-bar', true
+WHERE NOT EXISTS (SELECT 1 FROM tools WHERE name = 'Production Checklist');
+
 -- Note: We don't insert admin user here because we'll do it from the backend
 -- with proper password hashing during first run

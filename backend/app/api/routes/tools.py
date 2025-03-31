@@ -159,3 +159,89 @@ async def get_saved_progress(
         raise HTTPException(status_code=404, detail="No saved progress found")
     
     return saved_progress
+
+@router.post("/production-checklist/save", response_model=ToolUsageSchema)
+async def save_checklist_progress(
+    checklist_data: dict = Body(...),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+) -> Any:
+    """
+    Save production checklist progress.
+    """
+    # Find the Production Checklist tool
+    tool = db.query(Tool).filter(Tool.name == "Production Checklist").first()
+    if not tool:
+        raise HTTPException(status_code=404, detail="Production Checklist tool not found")
+    
+    # Check if there's an existing usage record
+    tool_usage = db.query(ToolUsage).filter(
+        ToolUsage.user_id == current_user.id,
+        ToolUsage.tool_id == tool.id,
+        ToolUsage.status.in_(["STARTED", "IN_PROGRESS"])
+    ).order_by(ToolUsage.started_at.desc()).first()
+    
+    if not tool_usage:
+        # Create a new usage record
+        tool_usage = ToolUsage(
+            user_id=current_user.id,
+            tool_id=tool.id,
+            status="IN_PROGRESS",
+            input_data={"checklist": checklist_data},
+            started_at=datetime.utcnow()
+        )
+        db.add(tool_usage)
+    else:
+        # Update existing record
+        tool_usage.input_data = {"checklist": checklist_data}
+        tool_usage.status = "IN_PROGRESS"
+    
+    db.commit()
+    db.refresh(tool_usage)
+    
+    return tool_usage
+
+@router.post("/production-checklist/complete", response_model=ToolUsageSchema)
+async def complete_checklist(
+    checklist_data: dict = Body(...),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+) -> Any:
+    """
+    Mark production checklist as completed.
+    """
+    # Find the Production Checklist tool
+    tool = db.query(Tool).filter(Tool.name == "Production Checklist").first()
+    if not tool:
+        raise HTTPException(status_code=404, detail="Production Checklist tool not found")
+    
+    # Check if there's an existing usage record
+    tool_usage = db.query(ToolUsage).filter(
+        ToolUsage.user_id == current_user.id,
+        ToolUsage.tool_id == tool.id,
+        ToolUsage.status.in_(["STARTED", "IN_PROGRESS"])
+    ).order_by(ToolUsage.started_at.desc()).first()
+    
+    if not tool_usage:
+        # Create a new usage record and mark it as completed
+        tool_usage = ToolUsage(
+            user_id=current_user.id,
+            tool_id=tool.id,
+            status="COMPLETED",
+            input_data={"checklist": checklist_data},
+            result_data={"completed": True},
+            started_at=datetime.utcnow(),
+            completed_at=datetime.utcnow()
+        )
+        db.add(tool_usage)
+    else:
+        # Update existing record and mark as completed
+        tool_usage.input_data = {"checklist": checklist_data}
+        tool_usage.result_data = {"completed": True}
+        tool_usage.status = "COMPLETED"
+        tool_usage.completed_at = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(tool_usage)
+    
+    return tool_usage

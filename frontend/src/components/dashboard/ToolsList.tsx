@@ -57,7 +57,7 @@ const ToolsList: React.FC<ToolsListProps> = ({ tools, isLoading }) => {
         {tools.map((tool) => (
           <li key={tool.id}>
             <Link 
-              href={`/tools/${tool.id}`}
+              href={tool.name === 'Production Checklist' ? '/tools/production-checklist' : `/tools/${tool.id}`}
               className="block hover:bg-secondary-50"
             >
               <div className="px-4 py-4 sm:px-6">

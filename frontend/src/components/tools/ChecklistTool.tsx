@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/hooks/useAuth';
@@ -30,6 +30,9 @@ export default function ProductionChecklistPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState({ completed: 0, total: 0 });
   const [savedStatus, setSavedStatus] = useState("Saved");
+  const [toolId, setToolId] = useState<number | null>(null);
+  const [usageId, setUsageId] = useState<number | null>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -39,30 +42,127 @@ export default function ProductionChecklistPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      // In a real implementation, this data would be loaded from an API
-      // For this example, we'll use the checklist data directly
-      const initialChecklist = getChecklistData();
-      setChecklistData(initialChecklist);
+      const findChecklistTool = async () => {
+        try {
+          const response = await apiService.get('/tools');
+          const checklistTool = response.data.find((tool: any) => tool.name === 'Production Checklist');
+          if (checklistTool) {
+            setToolId(checklistTool.id);
+            
+            // Try to load existing progress
+            try {
+              const progressResponse = await apiService.get(`/tools/${checklistTool.id}/saved-progress`);
+              if (progressResponse.data && progressResponse.data.form_data && progressResponse.data.form_data.checklist) {
+                setChecklistData(progressResponse.data.form_data.checklist);
+                
+                // Calculate progress
+                const loadedData = progressResponse.data.form_data.checklist;
+                let total = 0;
+                let completed = 0;
+                loadedData.forEach((section: any) => {
+                  total += section.items.length;
+                  completed += section.items.filter((item: any) => item.checked).length;
+                });
+                setProgress({ total, completed });
+              } else {
+                // Use default data
+                const initialChecklist = getChecklistData();
+                setChecklistData(initialChecklist);
+                
+                // Calculate total items
+                let total = 0;
+                let completed = 0;
+                initialChecklist.forEach(section => {
+                  total += section.items.length;
+                  completed += section.items.filter(item => item.checked).length;
+                });
+                
+                setProgress({ total, completed });
+              }
+            } catch (error) {
+              console.log('No saved progress found, using default data');
+              // Use default data
+              const initialChecklist = getChecklistData();
+              setChecklistData(initialChecklist);
+              
+              // Calculate total items
+              let total = 0;
+              let completed = 0;
+              initialChecklist.forEach(section => {
+                total += section.items.length;
+                completed += section.items.filter(item => item.checked).length;
+              });
+              
+              setProgress({ total, completed });
+            }
+            
+            // Initialize expanded sections
+            const initExpandedSections: Record<string, boolean> = {};
+            checklistData.forEach((section, index) => {
+              initExpandedSections[section.title] = index === 0; // Only expand first section by default
+            });
+            setExpandedSections(initExpandedSections);
+          } else {
+            // Fallback to default data
+            const initialChecklist = getChecklistData();
+            setChecklistData(initialChecklist);
+            
+            // Calculate total items
+            let total = 0;
+            let completed = 0;
+            initialChecklist.forEach(section => {
+              total += section.items.length;
+              completed += section.items.filter(item => item.checked).length;
+            });
+            
+            setProgress({ total, completed });
+            
+            // Initialize expanded sections
+            const initExpandedSections: Record<string, boolean> = {};
+            initialChecklist.forEach((section, index) => {
+              initExpandedSections[section.title] = index === 0; // Only expand first section by default
+            });
+            setExpandedSections(initExpandedSections);
+          }
+        } catch (error) {
+          console.error('Error finding checklist tool:', error);
+          // Fallback to default data
+          const initialChecklist = getChecklistData();
+          setChecklistData(initialChecklist);
+          
+          // Calculate total items
+          let total = 0;
+          let completed = 0;
+          initialChecklist.forEach(section => {
+            total += section.items.length;
+            completed += section.items.filter(item => item.checked).length;
+          });
+          
+          setProgress({ total, completed });
+          
+          // Initialize expanded sections
+          const initExpandedSections: Record<string, boolean> = {};
+          initialChecklist.forEach((section, index) => {
+            initExpandedSections[section.title] = index === 0; // Only expand first section by default
+          });
+          setExpandedSections(initExpandedSections);
+        } finally {
+          setIsLoading(false);
+        }
+      };
       
-      // Calculate total items
-      let total = 0;
-      let completed = 0;
-      initialChecklist.forEach(section => {
-        total += section.items.length;
-        completed += section.items.filter(item => item.checked).length;
-      });
-      
-      setProgress({ total, completed });
-      setIsLoading(false);
-      
-      // Initialize expanded sections
-      const initExpandedSections: Record<string, boolean> = {};
-      initialChecklist.forEach((section, index) => {
-        initExpandedSections[section.title] = index === 0; // Only expand first section by default
-      });
-      setExpandedSections(initExpandedSections);
+      findChecklistTool();
     }
   }, [isAuthenticated]);
+  
+  // Cleanup effect for the save timeout
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const toggleSection = (sectionTitle: string) => {
     setExpandedSections({
@@ -78,6 +178,31 @@ export default function ProductionChecklistPage() {
     });
   };
 
+  const saveChecklistProgress = async () => {
+    try {
+      setSavedStatus("Saving...");
+      const response = await apiService.post('/tools/production-checklist/save', checklistData);
+      setUsageId(response.data.id);
+      setSavedStatus("Saved");
+    } catch (error) {
+      console.error('Error saving checklist:', error);
+      setSavedStatus("Save failed");
+      toast.error("Failed to save progress");
+    }
+  };
+  
+  const completeChecklist = async () => {
+    try {
+      const response = await apiService.post('/tools/production-checklist/complete', checklistData);
+      toast.success("Checklist marked as complete!");
+      return response.data;
+    } catch (error) {
+      console.error('Error completing checklist:', error);
+      toast.error("Failed to mark checklist as complete");
+      return null;
+    }
+  };
+  
   const toggleChecklistItem = (sectionIndex: number, itemIndex: number) => {
     const newChecklistData = [...checklistData];
     const item = newChecklistData[sectionIndex].items[itemIndex];
@@ -97,12 +222,16 @@ export default function ProductionChecklistPage() {
     
     setProgress({ completed, total });
     
-    // Simulate saving to backend
+    // Save to backend with debounce
     setSavedStatus("Saving...");
-    setTimeout(() => {
-      setSavedStatus("Saved");
+    // Use a debounce to avoid too many API calls
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(() => {
+      saveChecklistProgress();
       toast.success(item.checked ? "Item marked as complete" : "Item marked as incomplete");
-    }, 500);
+    }, 1000);
   };
 
   const getProgressPercentage = () => {
@@ -110,7 +239,7 @@ export default function ProductionChecklistPage() {
     return Math.round((progress.completed / progress.total) * 100);
   };
 
-  const exportChecklist = () => {
+  const exportChecklist = async () => {
     // Create a formatted text for export
     let exportText = "# Production Readiness Checklist\n\n";
     
@@ -141,6 +270,11 @@ export default function ProductionChecklistPage() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
+    // Mark as complete if all items are checked
+    if (progress.completed === progress.total) {
+      await completeChecklist();
+    }
+    
     toast.success("Checklist exported successfully!");
   };
 
@@ -161,11 +295,25 @@ export default function ProductionChecklistPage() {
             <div className="flex items-center space-x-4">
               <div className="text-sm text-secondary-500">{savedStatus}</div>
               <button
+                onClick={saveChecklistProgress}
+                className="inline-flex items-center px-4 py-2 border border-secondary-300 text-sm font-medium rounded-md shadow-sm text-secondary-700 bg-white hover:bg-secondary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary-500"
+              >
+                Save Progress
+              </button>
+              <button
                 onClick={exportChecklist}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
               >
                 Export Checklist
               </button>
+              {progress.completed === progress.total && (
+                <button
+                  onClick={completeChecklist}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  Mark as Complete
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -107,7 +107,7 @@ export default function ToolsPage() {
                 {filteredTools.map((tool) => (
                   <Link 
                     key={tool.id} 
-                    href={`/tools/${tool.id}`} 
+                    href={tool.name === 'Production Checklist' ? '/tools/production-checklist' : `/tools/${tool.id}`} 
                     className="bg-white shadow rounded-lg p-6 hover:shadow-md transition-shadow"
                   >
                     <div className="flex items-start">
