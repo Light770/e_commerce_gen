@@ -188,57 +188,67 @@ export default function ProductionChecklistPage() {
   const saveChecklistProgress = async () => {
     try {
       setSavedStatus("Saving...");
+      console.log("Saving checklist data:", checklistData);
       const response = await apiService.post('/tools/production-checklist/save', checklistData);
       setUsageId(response.data.id);
       setSavedStatus("Saved");
+      toast.success("Progress saved successfully");
     } catch (error) {
       console.error('Error saving checklist:', error);
       setSavedStatus("Save failed");
-      toast.error("Failed to save progress");
+      toast.error("Failed to save progress: " + (error.response?.data?.detail || "Unknown error"));
     }
   };
   
   const completeChecklist = async () => {
     try {
+      setSavedStatus("Completing...");
+      console.log("Completing checklist with data:", checklistData);
       const response = await apiService.post('/tools/production-checklist/complete', checklistData);
+      setSavedStatus("Completed");
       toast.success("Checklist marked as complete!");
       return response.data;
     } catch (error) {
       console.error('Error completing checklist:', error);
-      toast.error("Failed to mark checklist as complete");
+      setSavedStatus("Completion failed");
+      toast.error("Failed to mark checklist as complete: " + (error.response?.data?.detail || "Unknown error"));
       return null;
     }
   };
   
   const toggleChecklistItem = (sectionIndex: number, itemIndex: number) => {
-    const newChecklistData = [...checklistData];
-    const item = newChecklistData[sectionIndex].items[itemIndex];
-    item.checked = !item.checked;
-    
-    setChecklistData(newChecklistData);
-    
-    // Update progress
-    const completed = newChecklistData.reduce(
-      (count, section) => count + section.items.filter(item => item.checked).length,
-      0
-    );
-    const total = newChecklistData.reduce(
-      (count, section) => count + section.items.length,
-      0
-    );
-    
-    setProgress({ completed, total });
-    
-    // Save to backend with debounce
-    setSavedStatus("Saving...");
-    // Use a debounce to avoid too many API calls
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
+    try {
+      const newChecklistData = [...checklistData];
+      const item = newChecklistData[sectionIndex].items[itemIndex];
+      item.checked = !item.checked;
+      
+      setChecklistData(newChecklistData);
+      
+      // Update progress
+      const completed = newChecklistData.reduce(
+        (count, section) => count + section.items.filter(item => item.checked).length,
+        0
+      );
+      const total = newChecklistData.reduce(
+        (count, section) => count + section.items.length,
+        0
+      );
+      
+      setProgress({ completed, total });
+      
+      // Save to backend with debounce
+      setSavedStatus("Saving...");
+      // Use a debounce to avoid too many API calls
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      saveTimeoutRef.current = setTimeout(() => {
+        saveChecklistProgress();
+      }, 1000);
+    } catch (error) {
+      console.error("Error toggling checklist item:", error);
+      toast.error("Failed to update item");
     }
-    saveTimeoutRef.current = setTimeout(() => {
-      saveChecklistProgress();
-      toast.success(item.checked ? "Item marked as complete" : "Item marked as incomplete");
-    }, 1000);
   };
 
   const getProgressPercentage = () => {
