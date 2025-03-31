@@ -98,8 +98,8 @@ export default function ProductionChecklistPage() {
             
             // Initialize expanded sections
             const initExpandedSections: Record<string, boolean> = {};
-            checklistData.forEach((section, index) => {
-              initExpandedSections[section.title] = index === 0; // Only expand first section by default
+            checklistData.forEach((section, idx) => {
+              initExpandedSections[section.title] = idx === 0; // Only expand first section by default
             });
             setExpandedSections(initExpandedSections);
           } else {
@@ -119,8 +119,8 @@ export default function ProductionChecklistPage() {
             
             // Initialize expanded sections
             const initExpandedSections: Record<string, boolean> = {};
-            initialChecklist.forEach((section, index) => {
-              initExpandedSections[section.title] = index === 0; // Only expand first section by default
+            initialChecklist.forEach((section, idx) => {
+              initExpandedSections[section.title] = idx === 0; // Only expand first section by default
             });
             setExpandedSections(initExpandedSections);
           }
