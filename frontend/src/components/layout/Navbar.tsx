@@ -14,6 +14,10 @@ const Navbar: React.FC<NavbarProps> = ({ toggleSidebar }) => {
   const { user, logout } = useAuth();
   const pathname = usePathname();
 
+  // Get the user's plan to display
+  const currentPlan = user?.active_subscription?.plan_name || 'Free';
+  const isFreePlan = !user?.active_subscription || currentPlan === 'Free';
+
   return (
     <nav className="bg-white border-b border-secondary-200">
       <div className="px-4 sm:px-6 lg:px-8">
@@ -47,7 +51,27 @@ const Navbar: React.FC<NavbarProps> = ({ toggleSidebar }) => {
               <span className="text-2xl font-bold text-primary-600">ToolHub</span>
             </div>
           </div>
+          
           <div className="flex items-center">
+            {/* Display subscription plan badge */}
+            <div className="mr-4">
+              <Link 
+                href="/pricing"
+                className={`text-sm px-3 py-1 rounded-full font-medium ${
+                  isFreePlan 
+                    ? 'bg-secondary-100 text-secondary-800 hover:bg-secondary-200' 
+                    : 'bg-primary-100 text-primary-800 hover:bg-primary-200'
+                }`}
+              >
+                {isFreePlan ? 'Free Plan' : currentPlan}
+                {isFreePlan && (
+                  <span className="ml-1 text-primary-600">
+                    ↗ Upgrade
+                  </span>
+                )}
+              </Link>
+            </div>
+            
             <div className="ml-4 flex items-center md:ml-6">
               {/* Profile dropdown */}
               <Menu as="div" className="relative ml-3">
@@ -93,12 +117,24 @@ const Navbar: React.FC<NavbarProps> = ({ toggleSidebar }) => {
                     <Menu.Item>
                       {({ active }) => (
                         <Link
-                          href="/settings"
+                          href="/profile?tab=subscription"
                           className={`${
                             active ? 'bg-secondary-100' : ''
                           } block px-4 py-2 text-sm text-secondary-700`}
                         >
-                          Settings
+                          Subscription
+                        </Link>
+                      )}
+                    </Menu.Item>
+                    <Menu.Item>
+                      {({ active }) => (
+                        <Link
+                          href="/pricing"
+                          className={`${
+                            active ? 'bg-secondary-100' : ''
+                          } block px-4 py-2 text-sm text-secondary-700`}
+                        >
+                          Pricing Plans
                         </Link>
                       )}
                     </Menu.Item>
@@ -125,5 +161,3 @@ const Navbar: React.FC<NavbarProps> = ({ toggleSidebar }) => {
     </nav>
   );
 };
-
-export default Navbar;

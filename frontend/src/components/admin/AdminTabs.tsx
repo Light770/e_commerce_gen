@@ -10,6 +10,7 @@ const AdminTabs: React.FC<AdminTabsProps> = ({ activeTab, setActiveTab }) => {
     { id: 'dashboard', name: 'Dashboard' },
     { id: 'users', name: 'User Management' },
     { id: 'tools', name: 'Tool Management' },
+    { id: 'subscriptions', name: 'Subscriptions' },
     { id: 'system', name: 'System Monitoring' },
   ];
 

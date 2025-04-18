@@ -1,7 +1,9 @@
 from pydantic import BaseModel, EmailStr, Field, validator
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 import re
+
+from app.schemas.subscription import Subscription
 
 # Shared properties
 class UserBase(BaseModel):
@@ -65,6 +67,7 @@ class UserInDBBase(UserBase):
     created_at: datetime
     updated_at: datetime
     is_verified: bool
+    stripe_customer_id: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -72,6 +75,23 @@ class UserInDBBase(UserBase):
 # Properties to return to client
 class User(UserInDBBase):
     roles: List[str] = []
+    active_subscription: Optional[Dict[str, Any]] = None
+    
+    @validator("active_subscription", pre=True)
+    def extract_subscription_info(cls, v, values, **kwargs):
+        """Format subscription info for the response."""
+        if isinstance(v, Subscription):
+            return {
+                "id": v.id,
+                "plan_name": v.plan.name if v.plan else "Unknown",
+                "status": v.status,
+                "billing_interval": v.billing_interval,
+                "start_date": v.start_date,
+                "end_date": v.end_date,
+                "trial_end": v.trial_end,
+                "cancel_at_period_end": v.cancel_at_period_end
+            }
+        return v
 
 # Properties stored in DB
 class UserInDB(UserInDBBase):
@@ -84,4 +104,4 @@ class Role(BaseModel):
     description: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True

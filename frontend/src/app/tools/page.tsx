@@ -5,16 +5,34 @@ import { useRouter } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { apiService } from '@/services/apiService';
-import { Tool } from '@/types/tool';
 import Link from 'next/link';
+import ToolCard from '@/components/tools/ToolCard';
+import { toast } from 'react-hot-toast';
+
+interface Tool {
+  id: number;
+  name: string;
+  description: string;
+  icon: string;
+  is_active: boolean;
+  is_premium: boolean;
+  created_at: string;
+  updated_at: string;
+  access: {
+    has_access: boolean;
+    reason: string | null;
+    remaining_uses: number | "unlimited";
+  };
+}
 
 export default function ToolsPage() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
   const router = useRouter();
   const [tools, setTools] = useState<Tool[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [premiumFilter, setPremiumFilter] = useState<'all' | 'free' | 'premium'>('all');
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -31,6 +49,7 @@ export default function ToolsPage() {
           setTools(response.data || []);
         } catch (error) {
           console.error('Error fetching tools:', error);
+          toast.error('Failed to load tools');
         } finally {
           setIsLoading(false);
         }
@@ -41,11 +60,21 @@ export default function ToolsPage() {
   }, [isAuthenticated]);
 
   const filteredTools = tools.filter((tool) => {
-    const matchesSearch = tool.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          tool.description.toLowerCase().includes(searchTerm.toLowerCase());
+    // Search filter
+    const matchesSearch = 
+      tool.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      tool.description.toLowerCase().includes(searchTerm.toLowerCase());
     
-    if (categoryFilter === 'all') return matchesSearch;
-    return matchesSearch && tool.icon === categoryFilter;
+    // Category filter
+    const matchesCategory = categoryFilter === 'all' || tool.icon === categoryFilter;
+    
+    // Premium filter
+    const matchesPremium = 
+      premiumFilter === 'all' || 
+      (premiumFilter === 'premium' && tool.is_premium) || 
+      (premiumFilter === 'free' && !tool.is_premium);
+    
+    return matchesSearch && matchesCategory && matchesPremium;
   });
 
   if (loading || !isAuthenticated) {
@@ -60,11 +89,48 @@ export default function ToolsPage() {
     <Layout>
       <div className="py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-          <h1 className="text-2xl font-semibold text-secondary-900">Tools</h1>
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-semibold text-secondary-900">Tools</h1>
+            <Link 
+              href="/pricing" 
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700"
+            >
+              Upgrade Plan
+            </Link>
+          </div>
         </div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="py-4">
+            {/* Current Plan Banner */}
+            <div className="mb-6 bg-secondary-50 rounded-lg p-4 border border-secondary-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-secondary-700">
+                    Current Plan: <span className="font-semibold text-primary-600">
+                      {user?.active_subscription?.plan_name || 'Free'}
+                    </span>
+                  </p>
+                  {!user?.active_subscription && (
+                    <p className="text-xs text-secondary-500 mt-1">
+                      Free plan has limited access to premium tools. 
+                      <Link href="/pricing" className="ml-1 text-primary-600 hover:text-primary-500">
+                        Upgrade for full access
+                      </Link>
+                    </p>
+                  )}
+                </div>
+                {user?.active_subscription && (
+                  <Link 
+                    href="/profile?tab=subscription" 
+                    className="text-sm text-primary-600 hover:text-primary-500"
+                  >
+                    Manage Subscription
+                  </Link>
+                )}
+              </div>
+            </div>
+            
             {/* Search and Filter Controls */}
             <div className="mb-6 flex flex-col sm:flex-row gap-4">
               <div className="flex-grow">
@@ -88,6 +154,17 @@ export default function ToolsPage() {
                   <option value="image">Image Editing</option>
                 </select>
               </div>
+              <div>
+                <select
+                  className="block w-full px-3 py-2 border border-secondary-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  value={premiumFilter}
+                  onChange={(e) => setPremiumFilter(e.target.value as 'all' | 'free' | 'premium')}
+                >
+                  <option value="all">All Tools</option>
+                  <option value="free">Free Tools</option>
+                  <option value="premium">Premium Tools</option>
+                </select>
+              </div>
             </div>
 
             {/* Tools Grid */}
@@ -105,26 +182,19 @@ export default function ToolsPage() {
             ) : filteredTools.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredTools.map((tool) => (
-                  <Link 
-                    key={tool.id} 
-                    href={tool.name === 'Production Checklist' ? '/tools/production-checklist' : `/tools/${tool.id}`} 
-                    className="bg-white shadow rounded-lg p-6 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex items-start">
-                      <div className="flex-shrink-0 bg-primary-100 rounded-md p-3">
-                        {getToolIcon(tool.icon)}
-                      </div>
-                      <div className="ml-4">
-                        <h3 className="text-lg font-medium text-secondary-900">{tool.name}</h3>
-                        <p className="mt-1 text-sm text-secondary-500 line-clamp-3">{tool.description}</p>
-                      </div>
-                    </div>
-                    <div className="mt-4 flex justify-end">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
-                        Use Tool
-                      </span>
-                    </div>
-                  </Link>
+                  <ToolCard
+                    key={tool.id}
+                    id={tool.id}
+                    name={tool.name}
+                    description={tool.description}
+                    icon={tool.icon}
+                    isPremium={tool.is_premium}
+                    access={{
+                      hasAccess: tool.access.has_access,
+                      reason: tool.access.reason,
+                      remainingUses: tool.access.remaining_uses
+                    }}
+                  />
                 ))}
               </div>
             ) : (
@@ -155,76 +225,3 @@ export default function ToolsPage() {
     </Layout>
   );
 }
-
-const getToolIcon = (iconName: string) => {
-  switch (iconName) {
-    case 'chart-bar':
-      return (
-        <svg
-          className="h-6 w-6 text-primary-600"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-          />
-        </svg>
-      );
-    case 'file-text':
-      return (
-        <svg
-          className="h-6 w-6 text-primary-600"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-          />
-        </svg>
-      );
-    case 'image':
-      return (
-        <svg
-          className="h-6 w-6 text-primary-600"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-          />
-        </svg>
-      );
-    default:
-      return (
-        <svg
-          className="h-6 w-6 text-primary-600"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
-          />
-        </svg>
-      );
-  }
-};

@@ -105,6 +105,26 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
       ),
     },
     {
+      name: 'Pricing',
+      href: '/pricing',
+      icon: (props) => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          {...props}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+      ),
+    },
+    {
       name: 'Profile',
       href: '/profile',
       icon: (props) => (
@@ -152,6 +172,26 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
       adminOnly: true,
     },
   ];
+
+  // Render the subscription badge in sidebar
+  const SubscriptionBadge = () => {
+    const planName = user?.active_subscription?.plan_name || 'Free';
+    const bgColor = planName === 'Free' ? 'bg-secondary-100' : 'bg-primary-100';
+    const textColor = planName === 'Free' ? 'text-secondary-800' : 'text-primary-800';
+    
+    return (
+      <div className={`px-3 py-2 rounded-md ${bgColor} ${textColor} mb-4 text-sm`}>
+        <div className="font-medium">Current Plan: {planName}</div>
+        {planName === 'Free' && (
+          <div className="mt-1 text-xs">
+            <Link href="/pricing" className="text-primary-600 font-medium">
+              Upgrade for full access →
+            </Link>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <>
@@ -223,6 +263,9 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
                     ToolHub
                   </span>
                 </div>
+                <div className="px-4 mt-4">
+                  <SubscriptionBadge />
+                </div>
                 <nav className="mt-5 px-2 space-y-1">
                   {navigation
                     .filter((item) => !item.adminOnly || (item.adminOnly && isAdmin))
@@ -266,6 +309,9 @@ const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
                 <span className="text-2xl font-bold text-primary-600">
                   ToolHub
                 </span>
+              </div>
+              <div className="px-4 mt-4">
+                <SubscriptionBadge />
               </div>
               <nav className="mt-5 flex-1 px-2 space-y-1">
                 {navigation

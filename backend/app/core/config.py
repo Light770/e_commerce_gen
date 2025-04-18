@@ -20,28 +20,6 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
     REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
     
-    # CORS settings
-    # CORS_ORIGINS: List[AnyHttpUrl] = []
-    
-    # # Modify the CORS_ORIGINS definition and validator in config.py
-    # CORS_ORIGINS: List[str] = []  # Set a default value
-
-    # @validator("CORS_ORIGINS", pre=True)
-    # def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
-    #     if isinstance(v, str):
-    #         if v.startswith("[") and v.endswith("]"):
-    #             # JSON format
-    #             try:
-    #                 return json.loads(v)
-    #             except json.JSONDecodeError as e:
-    #                 raise ValueError(f"Invalid JSON format for CORS_ORIGINS: {e}") from e
-    #         # Comma-separated format
-    #         return [i.strip() for i in v.split(",") if i.strip()]
-    #     if isinstance(v, list):
-    #         return v
-    #     # Default if empty or invalid
-    #     return ["http://localhost:3000"]
-    
     # Database settings
     DATABASE_URL: str = os.getenv("DATABASE_URL", "mysql+pymysql://user:password@db:3306/appdb")
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://redis:6379/0")
@@ -60,6 +38,20 @@ class Settings(BaseSettings):
     # Rate limiting
     RATE_LIMIT_PER_MINUTE: int = 60
     RATE_LIMIT_AUTH_PER_MINUTE: int = 5
+    
+    # Stripe settings
+    STRIPE_SECRET_KEY: str = os.getenv("STRIPE_SECRET_KEY", "")
+    STRIPE_PUBLISHABLE_KEY: str = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
+    STRIPE_WEBHOOK_SECRET: str = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+    
+    # Subscription settings
+    TRIAL_DAYS: int = int(os.getenv("TRIAL_DAYS", "14"))
+    FREE_TIER_TOOL_LIMIT: int = int(os.getenv("FREE_TIER_TOOL_LIMIT", "3"))
+    
+    # Frontend URLs
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    SUBSCRIPTION_SUCCESS_URL: str = f"{FRONTEND_URL}/subscription/success"
+    SUBSCRIPTION_CANCEL_URL: str = f"{FRONTEND_URL}/subscription/cancel"
     
     class Config:
         case_sensitive = True
